@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Mining Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: instrument-bench — sticky tab rail, each lab = canvas bench (left) + control/readout column (right); stacks on phones */
+:root{
+  --bg:#F6F8F8; --panel:#FFFFFF; --ink:#1B1F2A; --muted:#5C6670; --line:#D9E0E2;
+  --teal:#0E6E6E; --gold:#D98E1C; --coral:#D9472B; --violet:#6C5B9E; --grey:#9AA4AA;
+  --chip:#E8F1F1; --gridline:#E6ECED; --good:#1F7A4D; --bad:#B23A2A;
+  --display:"Spectral",Cambria,Georgia,serif; --body:"IBM Plex Sans",Calibri,Arial,sans-serif; --mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161D; --panel:#1A2029; --ink:#E8ECEE; --muted:#9AA6AE; --line:#2C3540;
+  --teal:#3FB8B0; --gold:#F2B04A; --coral:#F2785C; --violet:#A595D8; --grey:#6E7A82;
+  --chip:#1F2E33; --gridline:#232B35; --good:#5BC98E; --bad:#F2785C; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161D; --panel:#1A2029; --ink:#E8ECEE; --muted:#9AA6AE; --line:#2C3540;
+  --teal:#3FB8B0; --gold:#F2B04A; --coral:#F2785C; --violet:#A595D8; --grey:#6E7A82;
+  --chip:#1F2E33; --gridline:#232B35; --good:#5BC98E; --bad:#F2785C; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;margin-bottom:14px}
+header.top h1{font:700 30px/1.1 var(--display);margin:0;letter-spacing:-.01em}
+header.top p{margin:0;color:var(--muted)}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:6px;overflow-x:auto;padding:8px 0;border-bottom:1px solid var(--line);margin-bottom:18px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+nav.tabs button{font:500 14px var(--body);border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 14px;border-radius:999px;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{background:var(--teal);border-color:var(--teal);color:var(--panel)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+section.lab{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){section.lab{grid-template-columns:minmax(0,1fr)}}
+.lab h2{font:700 24px/1.2 var(--display);margin:0 0 4px;grid-column:1/-1}
+.lab .lede{grid-column:1/-1;margin:0 0 4px;color:var(--muted);max-width:75ch}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0}
+.bench canvas{width:100%;aspect-ratio:4/3;display:block;touch-action:none;cursor:crosshair;max-width:100%}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.card h3{font:600 12px var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.row:last-child{margin-bottom:0}
+label.ctl{display:grid;grid-template-columns:110px 1fr 46px;align-items:center;gap:8px;margin-bottom:8px;font-size:14px}
+label.ctl output{font:500 14px var(--mono);text-align:right}
+input[type=range]{width:100%;accent-color:var(--teal)}
+select,textarea{font:14px var(--body);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+textarea{width:100%;font:13px/1.5 var(--mono);min-height:150px;resize:vertical}
+.btn{font:500 14px var(--body);border:1px solid var(--teal);background:var(--teal);color:var(--panel);padding:7px 14px;border-radius:6px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--teal)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{font:500 13px var(--body);border:0;background:var(--panel);color:var(--ink);padding:6px 10px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--chip);color:var(--teal);font-weight:600}
+.check{display:flex;gap:8px;align-items:center;font-size:14px;margin-bottom:6px}
+.big{font:700 28px/1.1 var(--display)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.note{font-size:14px;color:var(--muted);margin:0}
+.note b{color:var(--ink)}
+table.t{border-collapse:collapse;width:100%;font-size:13px}
+table.t th,table.t td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+table.t th{font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+table.t td.num{text-align:right;font-family:var(--mono)}
+.scroll{overflow-x:auto;max-height:340px;overflow-y:auto}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font:600 12px var(--body)}
+.pill.ok{background:var(--chip);color:var(--good)}
+.pill.no{background:var(--bg);color:var(--bad);border:1px solid var(--line)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;margin-right:4px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--muted);margin-top:8px}
+.fade td{color:var(--grey)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-family:var(--mono)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font:500 13px var(--body);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}
+.chips button.on{background:var(--teal);color:var(--panel);border-color:var(--teal)}
+.bar{height:10px;border-radius:3px;background:var(--line);overflow:hidden;display:flex}
+.bar span{display:block;height:100%}
+.tree{font:13px/1.6 var(--mono);white-space:pre;overflow-x:auto;margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header class="top">
+  <h1>Data Mining Lab</h1>
+  <p>Live demos for the course · Prof. BAQACH Adil</p>
+</header>
+<nav class="tabs" role="tablist" aria-label="Demos">
+  <button role="tab" data-tab="rules">1 · Association rules</button>
+  <button role="tab" data-tab="kmeans">2 · K-means</button>
+  <button role="tab" data-tab="dbscan">3 · DBSCAN</button>
+  <button role="tab" data-tab="knn">4 · k-NN</button>
+  <button role="tab" data-tab="recommend">5 · Recommender</button>
+</nav>
+
+<!-- ============ KNN ============ -->
+<section class="lab" id="lab-knn" hidden>
+  <h2>k-Nearest Neighbours</h2>
+  <p class="lede">Drag the star to move the query point. The ring passes through the k-th neighbour; the majority class inside it wins. Turn on the decision map to see how k changes the boundary.</p>
+  <div class="bench"><canvas id="knnC" width="800" height="600" aria-label="k-NN plot"></canvas>
+    <div class="legend" id="knnLegend"></div></div>
+  <div class="col">
+    <div class="card"><h3>Settings</h3>
+      <label class="ctl">k <input type="range" id="knnK" min="1" max="21" step="1" value="3"><output id="knnKo">3</output></label>
+      <div class="row">Distance <div class="seg" id="knnMetric"><button aria-pressed="true" data-v="euc">Euclidean</button><button aria-pressed="false" data-v="man">Manhattan</button></div></div>
+      <div class="check"><input type="checkbox" id="knnMap"><label for="knnMap">Show decision map</label></div>
+      <div class="check"><input type="checkbox" id="knnW"><label for="knnW">Weight votes by 1/distance</label></div>
+      <div class="row">Click adds <div class="seg" id="knnMode"><button aria-pressed="true" data-v="q">Query</button><button aria-pressed="false" data-v="0">Class A</button><button aria-pressed="false" data-v="1">Class B</button><button aria-pressed="false" data-v="2">Class C</button></div></div>
+      <div class="row"><button class="btn ghost" id="knnNew">New data</button><button class="btn ghost" id="knnNoise">Add 6 noisy points</button></div>
+    </div>
+    <div class="card"><h3>Prediction</h3>
+      <div class="big" id="knnPred">–</div>
+      <div id="knnVotes" class="note" style="margin:6px 0 10px"></div>
+      <div class="scroll" style="max-height:220px"><table class="t"><thead><tr><th>#</th><th>Point</th><th>Class</th><th style="text-align:right">Distance</th></tr></thead><tbody id="knnTab"></tbody></table></div>
+    </div>
+    <p class="note"><b>Try:</b> k = 1 with the map on, then k = 15. Small k gives a jagged, overfitting boundary (high variance); large k smooths it until minority regions disappear (high bias).</p>
+  </div>
+</section>
+
+<!-- ============ KMEANS ============ -->
+<section class="lab" id="lab-kmeans" hidden>
+  <h2>K-means, step by step</h2>
+  <p class="lede">Each click on <b>Step</b> performs one half of an iteration: assign every point to its nearest centroid, then move each centroid to the mean of its points. Click the plot to add points.</p>
+  <div class="bench"><canvas id="kmC" width="800" height="600" aria-label="K-means plot"></canvas></div>
+  <div class="col">
+    <div class="card"><h3>Settings</h3>
+      <label class="ctl">k <input type="range" id="kmK" min="1" max="6" value="3"><output id="kmKo">3</output></label>
+      <div class="row">Data <select id="kmData"><option value="blobs">3 clear blobs</option><option value="four">4 blobs</option><option value="uneven">Uneven sizes</option><option value="moons">Two moons</option><option value="course">Course 1-D example</option></select></div>
+      <div class="row">Init <div class="seg" id="kmInit"><button aria-pressed="true" data-v="rand">Random points</button><button aria-pressed="false" data-v="pp">k-means++</button></div></div>
+      <div class="row"><button class="btn" id="kmStep">Step</button><button class="btn ghost" id="kmRun">Run to convergence</button><button class="btn ghost" id="kmReset">New centroids</button></div>
+    </div>
+    <div class="card"><h3>State</h3>
+      <dl class="kv"><dt>Iteration</dt><dd id="kmIt">0</dd><dt>Next action</dt><dd id="kmPhase">assign</dd><dt>WCSS</dt><dd id="kmW">–</dd><dt>Status</dt><dd id="kmSt">–</dd></dl>
+      <div id="kmCents" class="note" style="margin-top:8px"></div>
+    </div>
+    <div class="card"><h3>Elbow method</h3>
+      <canvas id="kmElbow" width="420" height="180" style="width:100%;height:auto;max-width:100%" aria-label="Elbow chart"></canvas>
+      <div class="row" style="margin-top:6px"><button class="btn ghost" id="kmElbowBtn">Compute WCSS for k = 1…8</button></div>
+    </div>
+    <p class="note"><b>Try:</b> “Two moons”. K-means only draws straight (Voronoi) borders, so it cuts the moons in the wrong place. DBSCAN handles them.</p>
+  </div>
+</section>
+
+<!-- ============ DBSCAN ============ -->
+<section class="lab" id="lab-dbscan" hidden>
+  <h2>DBSCAN</h2>
+  <p class="lede">A point is <b>core</b> if its ε-neighbourhood holds at least MinPts points (itself included). Clusters grow from core to core; <b>border</b> points join but do not expand; the rest is <b>noise</b>. Hover a point to see its ε-circle.</p>
+  <div class="bench"><canvas id="dbC" width="800" height="600" aria-label="DBSCAN plot"></canvas>
+    <div class="legend"><span><span class="dot" style="background:var(--teal)"></span>core (filled)</span><span><span class="dot" style="border:2px solid var(--teal)"></span>border (ring)</span><span>× noise</span></div></div>
+  <div class="col">
+    <div class="card"><h3>Settings</h3>
+      <div class="row">Data <select id="dbData"><option value="course">Course example P1–P12</option><option value="moons">Two moons + noise</option><option value="blobs">Blobs of different density</option></select></div>
+      <label class="ctl">ε (eps) <input type="range" id="dbEps" min="0.2" max="3" step="0.1" value="1.9"><output id="dbEpso">1.9</output></label>
+      <label class="ctl">MinPts <input type="range" id="dbMin" min="2" max="10" value="4"><output id="dbMino">4</output></label>
+      <div class="check"><input type="checkbox" id="dbCircles"><label for="dbCircles">Draw ε-circles around core points</label></div>
+    </div>
+    <div class="card"><h3>Result</h3>
+      <dl class="kv"><dt>Clusters</dt><dd id="dbN">–</dd><dt>Core</dt><dd id="dbCore">–</dd><dt>Border</dt><dd id="dbBorder">–</dd><dt>Noise</dt><dd id="dbNoise">–</dd></dl>
+      <div id="dbHover" class="note" style="margin-top:8px">Hover a point.</div>
+    </div>
+    <p class="note"><b>Try:</b> on the course example lower ε to 1.4 and watch the clusters break into noise; on “different density” no single ε fits both blobs. That is DBSCAN’s main weakness (HDBSCAN fixes it).</p>
+  </div>
+</section>
+
+<!-- ============ RULES ============ -->
+<section class="lab" id="lab-rules" hidden>
+  <h2>Apriori and association rules</h2>
+  <p class="lede">Edit the transactions (one basket per line, items separated by commas). Frequent itemsets are found level by level; a candidate is pruned as soon as it falls under the minimum support, and none of its supersets is ever counted.</p>
+  <div class="col">
+    <div class="card"><h3>Transactions</h3>
+      <div class="row"><div class="chips" id="ruPresets"><button data-p="basket" class="on">Course basket</button><button data-p="han">I1–I5 exercise</button><button data-p="fp">FP-growth example</button></div></div>
+      <textarea id="ruTx" spellcheck="false" aria-label="Transactions"></textarea>
+    </div>
+    <div class="card"><h3>Thresholds</h3>
+      <label class="ctl">Min support <input type="range" id="ruSup" min="1" max="6" value="2"><output id="ruSupo">2</output></label>
+      <label class="ctl">Min confidence <input type="range" id="ruConf" min="0" max="100" step="5" value="75"><output id="ruConfo">75%</output></label>
+      <p class="note">Support is shown as a count (absolute) and a share of all transactions (relative).</p>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card"><h3>Apriori levels</h3><div class="scroll"><table class="t"><thead><tr><th>Level</th><th>Itemset</th><th style="text-align:right">Count</th><th style="text-align:right">Support</th><th></th></tr></thead><tbody id="ruLevels"></tbody></table></div></div>
+    <div class="card"><h3>Rules from frequent itemsets</h3><div class="scroll"><table class="t"><thead><tr><th>Rule</th><th style="text-align:right">Sup</th><th style="text-align:right">Conf</th><th style="text-align:right">Lift</th><th></th></tr></thead><tbody id="ruRules"></tbody></table></div>
+      <p class="note" style="margin-top:8px">Lift &gt; 1: items appear together more than by chance · = 1: independent · &lt; 1: they repel each other.</p></div>
+  </div>
+</section>
+
+<!-- ============ RECOMMEND ============ -->
+<section class="lab" id="lab-recommend" hidden>
+  <h2>User-based collaborative filtering</h2>
+  <p class="lede">Edit the ratings (1–5, empty = not rated). Pick a user and an item: the k most similar users who rated that item vote on the predicted rating, weighted by their similarity.</p>
+  <div class="card" style="min-width:0"><h3>Rating matrix</h3>
+    <div class="scroll" style="max-height:none"><table class="t" id="recMatrix"></table></div>
+    <div class="row" style="margin-top:10px"><button class="btn ghost" id="recReset">Reset to course data</button><button class="btn ghost" id="recAddUser">Add a new user</button></div>
+    <p class="note">Click a “?” cell to make it the target. Course worked example: Salma × I3; Exercise 8: Omar × I5.</p>
+  </div>
+  <div class="col">
+    <div class="card"><h3>Settings</h3>
+      <div class="row">User <select id="recUser"></select> Item <select id="recItem"></select></div>
+      <label class="ctl">k neighbours <input type="range" id="recK" min="1" max="4" value="2"><output id="recKo">2</output></label>
+      <div class="row">Similarity <div class="seg" id="recSim"><button aria-pressed="true" data-v="cos">Cosine</button><button aria-pressed="false" data-v="mc">Mean-centred</button></div></div>
+    </div>
+    <div class="card"><h3>Prediction</h3>
+      <div class="big" id="recPred">–</div>
+      <p class="note" id="recFormula" style="margin:6px 0 10px"></p>
+      <table class="t"><thead><tr><th>Neighbour</th><th>Co-rated</th><th style="text-align:right">Similarity</th><th style="text-align:right">Rating</th><th></th></tr></thead><tbody id="recNb"></tbody></table>
+    </div>
+    <p class="note"><b>Try:</b> switch to mean-centred similarity and watch Imane and Nadia, whose tastes are opposite to Salma’s, get negative similarities.</p>
+  </div>
+</section>
+</div>
+
+<script>
+(()=>{
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const CLS=()=>[css('--teal'),css('--gold'),css('--coral'),css('--violet'),css('--grey'),'#4A90C2'];
+let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646};
+const gauss=()=>{let u=rnd()||1e-9,v=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+const blob=(cx,cy,s,n,c)=>Array.from({length:n},()=>({x:cx+gauss()*s,y:cy+gauss()*s,c}));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------- canvas helper: data space x∈[x0,x1], y∈[y0,y1] ---------- */
+function Plot(canvas,dom){
+  const ctx=canvas.getContext('2d');const P={canvas,ctx,dom:dom||[0,10,0,7.5],pad:28};
+  P.fit=()=>{const r=canvas.getBoundingClientRect();const d=window.devicePixelRatio||1;canvas.width=Math.round(r.width*d);canvas.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0);P.W=r.width;P.H=r.height;};
+  P.sx=x=>P.pad+(x-P.dom[0])/(P.dom[1]-P.dom[0])*(P.W-2*P.pad);
+  P.sy=y=>P.H-P.pad-(y-P.dom[2])/(P.dom[3]-P.dom[2])*(P.H-2*P.pad);
+  P.ix=px=>P.dom[0]+(px-P.pad)/(P.W-2*P.pad)*(P.dom[1]-P.dom[0]);
+  P.iy=py=>P.dom[2]+(P.H-P.pad-py)/(P.H-2*P.pad)*(P.dom[3]-P.dom[2]);
+  P.unit=()=> (P.W-2*P.pad)/(P.dom[1]-P.dom[0]);
+  P.clear=()=>{ctx.clearRect(0,0,P.W,P.H);ctx.strokeStyle=css('--gridline');ctx.lineWidth=1;ctx.fillStyle=css('--muted');ctx.font='11px '+css('--mono');
+    const step=(P.dom[1]-P.dom[0])>12?2:1;
+    for(let x=Math.ceil(P.dom[0]);x<=P.dom[1];x+=step){ctx.beginPath();ctx.moveTo(P.sx(x),P.sy(P.dom[2]));ctx.lineTo(P.sx(x),P.sy(P.dom[3]));ctx.stroke();ctx.fillText(x,P.sx(x)-3,P.H-P.pad+14);}
+    for(let y=Math.ceil(P.dom[2]);y<=P.dom[3];y+=step){ctx.beginPath();ctx.moveTo(P.sx(P.dom[0]),P.sy(y));ctx.lineTo(P.sx(P.dom[1]),P.sy(y));ctx.stroke();ctx.fillText(y,4,P.sy(y)+4);}};
+  P.pt=(x,y,r,fill,stroke,lw)=>{ctx.beginPath();ctx.arc(P.sx(x),P.sy(y),r,0,7);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||2;ctx.stroke();}};
+  P.pos=e=>{const r=canvas.getBoundingClientRect();return {x:P.ix(e.clientX-r.left),y:P.iy(e.clientY-r.top)}};
+  return P;
+}
+const seg=(id,cb)=>{const el=document.getElementById(id);el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));cb(b.dataset.v);});return ()=>el.querySelector('[aria-pressed="true"]').dataset.v;};
+const bindRange=(id,cb,fmt)=>{const el=document.getElementById(id),o=document.getElementById(id+'o');const f=()=>{o.textContent=fmt?fmt(el.value):el.value;cb(+el.value)};el.addEventListener('input',f);return el;};
+
+/* ================= KNN ================= */
+const knn={P:Plot(document.getElementById('knnC')),k:3,metric:'euc',map:false,w:false,mode:'q',q:{x:5.2,y:3.9},pts:[]};
+knn.gen=()=>{seed=Math.floor(Math.random()*1e6)+1;knn.pts=[...blob(3,5.2,0.9,18,0),...blob(6.8,5.6,0.9,18,1),...blob(5,2.2,1.0,18,2)].map(p=>({x:clamp(p.x,0.2,9.8),y:clamp(p.y,0.2,7.3),c:p.c}));knn.pts.forEach((p,i)=>p.id=i+1);};
+knn.d=(a,b)=>knn.metric==='euc'?Math.hypot(a.x-b.x,a.y-b.y):Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
+knn.classify=(q)=>{const nb=knn.pts.map(p=>({p,d:knn.d(p,q)})).sort((a,b)=>a.d-b.d).slice(0,knn.k);const v=[0,0,0];nb.forEach(n=>v[n.p.c]+=knn.w?1/(n.d+1e-6):1);let best=0;for(let i=1;i<3;i++)if(v[i]>v[best]+1e-12)best=i;
+  // tie-break: class of nearest neighbour among tied
+  const top=Math.max(...v);const tied=[0,1,2].filter(i=>Math.abs(v[i]-top)<1e-12);if(tied.length>1)best=nb.find(n=>tied.includes(n.p.c)).p.c;return {nb,v,best};};
+knn.draw=()=>{const P=knn.P,ctx=P.ctx,C=CLS();P.fit();P.clear();
+  if(knn.map){const cell=8;for(let px=P.pad;px<P.W-P.pad;px+=cell)for(let py=P.pad;py<P.H-P.pad;py+=cell){const r=knn.classify({x:P.ix(px+cell/2),y:P.iy(py+cell/2)});ctx.globalAlpha=.16;ctx.fillStyle=C[r.best];ctx.fillRect(px,py,cell,cell);}ctx.globalAlpha=1;}
+  const r=knn.classify(knn.q);const kd=r.nb[r.nb.length-1].d;
+  ctx.setLineDash([5,4]);ctx.strokeStyle=css('--ink');ctx.lineWidth=1.2;ctx.beginPath();
+  if(knn.metric==='euc'){ctx.arc(P.sx(knn.q.x),P.sy(knn.q.y),kd*P.unit(),0,7);}else{const u=kd*P.unit(),cx=P.sx(knn.q.x),cy=P.sy(knn.q.y);ctx.moveTo(cx,cy-u);ctx.lineTo(cx+u,cy);ctx.lineTo(cx,cy+u);ctx.lineTo(cx-u,cy);ctx.closePath();}
+  ctx.stroke();ctx.setLineDash([]);
+  r.nb.forEach(n=>{ctx.strokeStyle=C[n.p.c];ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(P.sx(knn.q.x),P.sy(knn.q.y));ctx.lineTo(P.sx(n.p.x),P.sy(n.p.y));ctx.stroke();});
+  const sel=new Set(r.nb.map(n=>n.p));
+  knn.pts.forEach(p=>P.pt(p.x,p.y,sel.has(p)?7:5.5,C[p.c],sel.has(p)?css('--ink'):css('--panel'),sel.has(p)?2:1));
+  // star
+  const cx=P.sx(knn.q.x),cy=P.sy(knn.q.y);ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?5:12;ctx.lineTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a));}ctx.closePath();ctx.fillStyle=C[r.best];ctx.fill();ctx.strokeStyle=css('--ink');ctx.lineWidth=1.5;ctx.stroke();
+  const names=['A','B','C'];
+  document.getElementById('knnPred').innerHTML=`<span class="dot" style="background:${C[r.best]};width:16px;height:16px"></span> Class ${names[r.best]}`;
+  document.getElementById('knnVotes').textContent='Votes · '+names.map((n,i)=>`${n}: ${knn.w?r.v[i].toFixed(2):r.v[i]}`).join('   ');
+  document.getElementById('knnTab').innerHTML=r.nb.map((n,i)=>`<tr><td>${i+1}</td><td class="mono">(${n.p.x.toFixed(1)}, ${n.p.y.toFixed(1)})</td><td><span class="dot" style="background:${C[n.p.c]}"></span>${names[n.p.c]}</td><td class="num">${n.d.toFixed(2)}</td></tr>`).join('');
+  document.getElementById('knnLegend').innerHTML=names.map((n,i)=>`<span><span class="dot" style="background:${C[i]}"></span>Class ${n}</span>`).join('')+'<span>★ query point</span>';
+};
+bindRange('knnK',v=>{knn.k=v;knn.draw()});
+seg('knnMetric',v=>{knn.metric=v;knn.draw()});seg('knnMode',v=>knn.mode=v);
+document.getElementById('knnMap').onchange=e=>{knn.map=e.target.checked;knn.draw()};
+document.getElementById('knnW').onchange=e=>{knn.w=e.target.checked;knn.draw()};
+document.getElementById('knnNew').onclick=()=>{knn.gen();knn.draw()};
+document.getElementById('knnNoise').onclick=()=>{for(let i=0;i<6;i++)knn.pts.push({x:0.5+Math.random()*9,y:0.5+Math.random()*6.5,c:Math.floor(Math.random()*3)});knn.draw()};
+{const c=knn.P.canvas;let drag=false;
+ c.addEventListener('pointerdown',e=>{const p=knn.P.pos(e);if(knn.mode==='q'){drag=true;c.setPointerCapture(e.pointerId);knn.q=p;}else knn.pts.push({x:p.x,y:p.y,c:+knn.mode});knn.draw();});
+ c.addEventListener('pointermove',e=>{if(drag){knn.q=knn.P.pos(e);knn.q.x=clamp(knn.q.x,0,10);knn.q.y=clamp(knn.q.y,0,7.5);knn.draw();}});
+ c.addEventListener('pointerup',()=>drag=false);}
+knn.gen();
+
+/* ================= KMEANS ================= */
+const km={P:Plot(document.getElementById('kmC')),k:3,init:'rand',pts:[],cents:[],assign:[],it:0,phase:'assign',done:false,data:'blobs',trail:[]};
+km.genData=()=>{seed=Math.floor(Math.random()*1e6)+1;const d=km.data;km.P.dom=[0,10,0,7.5];
+  if(d==='blobs')km.pts=[...blob(2.6,5.3,.7,30),...blob(7.2,5.4,.7,30),...blob(5,1.9,.7,30)];
+  else if(d==='four')km.pts=[...blob(2.5,5.5,.6,25),...blob(7.5,5.5,.6,25),...blob(2.5,2,.6,25),...blob(7.5,2,.6,25)];
+  else if(d==='uneven')km.pts=[...blob(3,3.8,1.3,70),...blob(7.8,5.8,.35,12),...blob(7.8,1.6,.35,12)];
+  else if(d==='moons'){km.pts=[];for(let i=0;i<50;i++){const a=Math.PI*i/49;km.pts.push({x:3.4+2.2*Math.cos(a)+gauss()*.15,y:3.3+2.2*Math.sin(a)+gauss()*.15});km.pts.push({x:5.6-2.2*Math.cos(a)+gauss()*.15,y:4.2-2.2*Math.sin(a)+gauss()*.15});}}
+  else if(d==='course'){km.P.dom=[0,18,-2,2];km.pts=[1,2,3,6,7,8,13,15,17].map(x=>({x,y:0}));}
+  km.pts.forEach(p=>{p.x=clamp(p.x,km.P.dom[0]+.1,km.P.dom[1]-.1);});km.newCents();};
+km.newCents=()=>{const n=km.pts.length;if(!n)return;let c=[];
+  if(km.data==='course'&&km.init==='rand'&&km.k===3)c=[{x:1,y:0},{x:2,y:0},{x:3,y:0}];
+  else if(km.init==='pp'){c.push({...km.pts[Math.floor(Math.random()*n)]});while(c.length<km.k){const d=km.pts.map(p=>Math.min(...c.map(q=>(p.x-q.x)**2+(p.y-q.y)**2)));const s=d.reduce((a,b)=>a+b,0);let r=Math.random()*s,i=0;while(r>d[i]&&i<n-1){r-=d[i];i++;}c.push({...km.pts[i]});}}
+  else{const idx=[...Array(n).keys()].sort(()=>Math.random()-.5).slice(0,km.k);c=idx.map(i=>({...km.pts[i]}));}
+  km.cents=c.map(p=>({x:p.x,y:p.y}));km.assign=km.pts.map(()=>-1);km.it=0;km.phase='assign';km.done=false;km.trail=km.cents.map(c=>[{...c}]);km.draw();};
+km.wcss=()=>km.assign[0]<0?null:km.pts.reduce((s,p,i)=>s+(p.x-km.cents[km.assign[i]].x)**2+(p.y-km.cents[km.assign[i]].y)**2,0);
+km.step=()=>{if(km.done)return;
+  if(km.phase==='assign'){let ch=0;km.pts.forEach((p,i)=>{let b=0,bd=1e9;km.cents.forEach((c,j)=>{const d=(p.x-c.x)**2+(p.y-c.y)**2;if(d<bd-1e-12){bd=d;b=j;}});if(b!==km.assign[i])ch++;km.assign[i]=b;});km.it++;
+    if(ch===0&&km.it>1){km.done=true;}km.phase='update';km.lastChanged=ch;}
+  else{km.cents=km.cents.map((c,j)=>{const m=km.pts.filter((_,i)=>km.assign[i]===j);return m.length?{x:m.reduce((s,p)=>s+p.x,0)/m.length,y:m.reduce((s,p)=>s+p.y,0)/m.length}:c;});km.cents.forEach((c,j)=>km.trail[j].push({...c}));km.phase='assign';}
+  km.draw();};
+km.draw=()=>{const P=km.P,ctx=P.ctx,C=CLS();P.fit();P.clear();
+  km.pts.forEach((p,i)=>P.pt(p.x,p.y,km.data==='course'?7:5,km.assign[i]<0?css('--grey'):C[km.assign[i]],css('--panel'),1));
+  if(km.data==='course'){ctx.fillStyle=css('--ink');ctx.font='12px '+css('--mono');km.pts.forEach(p=>ctx.fillText(p.x,P.sx(p.x)-5,P.sy(0)+22));}
+  km.trail.forEach((t,j)=>{ctx.strokeStyle=C[j];ctx.lineWidth=1.5;ctx.setLineDash([3,3]);ctx.beginPath();t.forEach((c,i)=>i?ctx.lineTo(P.sx(c.x),P.sy(c.y)):ctx.moveTo(P.sx(c.x),P.sy(c.y)));ctx.stroke();ctx.setLineDash([]);});
+  km.cents.forEach((c,j)=>{const x=P.sx(c.x),y=P.sy(c.y);ctx.fillStyle=C[j];ctx.strokeStyle=css('--ink');ctx.lineWidth=2;ctx.beginPath();ctx.rect(x-8,y-8,16,16);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-5,y);ctx.lineTo(x+5,y);ctx.moveTo(x,y-5);ctx.lineTo(x,y+5);ctx.strokeStyle=css('--panel');ctx.stroke();});
+  document.getElementById('kmIt').textContent=km.it;document.getElementById('kmPhase').textContent=km.done?'—':(km.phase==='assign'?'assign points':'update centroids');
+  const w=km.wcss();document.getElementById('kmW').textContent=w==null?'–':w.toFixed(2);
+  document.getElementById('kmSt').textContent=km.done?'converged: no point changed cluster':(km.it?`${km.lastChanged} point(s) changed cluster`:'centroids placed');
+  document.getElementById('kmCents').innerHTML=km.cents.map((c,j)=>`<span class="dot" style="background:${C[j]}"></span>M${j+1} = ${km.data==='course'?c.x.toFixed(2):`(${c.x.toFixed(2)}, ${c.y.toFixed(2)})`}`).join('<br>');};
+km.elbow=()=>{const res=[];const pts=km.pts;for(let k=1;k<=8;k++){let best=1e18;for(let rep=0;rep<8;rep++){let c=[{...pts[Math.floor(Math.random()*pts.length)]}];while(c.length<k){const d=pts.map(p=>Math.min(...c.map(q=>(p.x-q.x)**2+(p.y-q.y)**2)));const s=d.reduce((a,b)=>a+b,0);let r=Math.random()*s,i=0;while(r>d[i]&&i<pts.length-1){r-=d[i];i++;}c.push({...pts[i]});}
+  let a=[];for(let it=0;it<60;it++){a=pts.map(p=>{let b=0,bd=1e9;c.forEach((q,j)=>{const d=(p.x-q.x)**2+(p.y-q.y)**2;if(d<bd){bd=d;b=j;}});return b;});c=c.map((q,j)=>{const m=pts.filter((_,i)=>a[i]===j);return m.length?{x:m.reduce((s,p)=>s+p.x,0)/m.length,y:m.reduce((s,p)=>s+p.y,0)/m.length}:q;});}
+  const w=pts.reduce((s,p,i)=>s+(p.x-c[a[i]].x)**2+(p.y-c[a[i]].y)**2,0);best=Math.min(best,w);}res.push(best);}
+  const cv=document.getElementById('kmElbow'),r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;cv.width=r.width*d;cv.height=r.width*.43*d;const ctx=cv.getContext('2d');ctx.setTransform(d,0,0,d,0,0);const W=r.width,H=r.width*.43,pd=30;
+  ctx.clearRect(0,0,W,H);const mx=Math.max(...res);ctx.strokeStyle=css('--line');ctx.beginPath();ctx.moveTo(pd,H-pd);ctx.lineTo(W-10,H-pd);ctx.moveTo(pd,8);ctx.lineTo(pd,H-pd);ctx.stroke();
+  ctx.fillStyle=css('--muted');ctx.font='11px '+css('--mono');const X=k=>pd+(k-1)/7*(W-pd-20),Y=v=>H-pd-v/mx*(H-pd-14);
+  for(let k=1;k<=8;k++)ctx.fillText(k,X(k)-3,H-pd+14);ctx.fillText('WCSS',2,12);ctx.fillText('k',W-14,H-pd+14);
+  ctx.strokeStyle=css('--teal');ctx.lineWidth=2;ctx.beginPath();res.forEach((v,i)=>i?ctx.lineTo(X(i+1),Y(v)):ctx.moveTo(X(1),Y(v)));ctx.stroke();
+  res.forEach((v,i)=>{ctx.beginPath();ctx.arc(X(i+1),Y(v),3.5,0,7);ctx.fillStyle=(i+1===km.k)?css('--gold'):css('--teal');ctx.fill();});};
+bindRange('kmK',v=>{km.k=v;km.newCents()});seg('kmInit',v=>{km.init=v;km.newCents()});
+document.getElementById('kmData').onchange=e=>{km.data=e.target.value;if(km.data==='course'){km.k=3;document.getElementById('kmK').value=3;document.getElementById('kmKo').textContent=3;}km.genData();};
+document.getElementById('kmStep').onclick=km.step;document.getElementById('kmReset').onclick=km.newCents;
+document.getElementById('kmRun').onclick=()=>{let g=0;const t=setInterval(()=>{km.step();if(km.done||++g>200)clearInterval(t)},matchMedia('(prefers-reduced-motion: reduce)').matches?0:220)};
+document.getElementById('kmElbowBtn').onclick=km.elbow;
+km.P.canvas.addEventListener('pointerdown',e=>{if(km.data==='course')return;const p=km.P.pos(e);km.pts.push(p);km.assign.push(-1);km.done=false;km.draw();});
+km.genData();
+
+/* ================= DBSCAN ================= */
+const db={P:Plot(document.getElementById('dbC')),eps:1.9,min:4,data:'course',pts:[],hover:-1,circles:false};
+db.gen=()=>{seed=Math.floor(Math.random()*1e6)+1;db.P.dom=[0,10,0,7.5];
+  if(db.data==='course'){db.P.dom=[0,10,0,8.5];db.pts=[[3,7],[4,6],[5,5],[6,4],[7,3],[6,2],[7,2],[8,4],[3,3],[2,6],[3,5],[2,4]].map((p,i)=>({x:p[0],y:p[1],name:'P'+(i+1)}));}
+  else if(db.data==='moons'){db.pts=[];for(let i=0;i<60;i++){const a=Math.PI*i/59;db.pts.push({x:3.4+2.2*Math.cos(a)+gauss()*.12,y:3.4+2.2*Math.sin(a)+gauss()*.12});db.pts.push({x:5.6-2.2*Math.cos(a)+gauss()*.12,y:4.3-2.2*Math.sin(a)+gauss()*.12});}for(let i=0;i<14;i++)db.pts.push({x:.4+rnd()*9.2,y:.4+rnd()*6.7});}
+  else{db.pts=[...blob(2.8,4.2,.35,45),...blob(7,3.6,1.1,45)];for(let i=0;i<8;i++)db.pts.push({x:.4+rnd()*9.2,y:.4+rnd()*6.7});}
+  if(db.data!=='course'){setR('dbEps',0.5);setR('dbMin',5);}else{setR('dbEps',1.9);setR('dbMin',4);}db.run();};
+function setR(id,v){const e=document.getElementById(id);e.value=v;document.getElementById(id+'o').textContent=v;if(id==='dbEps')db.eps=v;else db.min=v;}
+db.run=()=>{const n=db.pts.length,e=db.eps+1e-9;db.N=db.pts.map((p,i)=>db.pts.map((q,j)=>j).filter(j=>j!==i&&Math.hypot(p.x-db.pts[j].x,p.y-db.pts[j].y)<=e));
+  db.core=db.N.map(nb=>nb.length+1>=db.min);db.lab=Array(n).fill(-1);let c=0;
+  for(let i=0;i<n;i++){if(db.lab[i]>=0||!db.core[i])continue;const st=[i];db.lab[i]=c;while(st.length){const q=st.pop();if(!db.core[q])continue;db.N[q].forEach(r=>{if(db.lab[r]<0){db.lab[r]=c;st.push(r);}});}c++;}
+  db.nc=c;db.draw();};
+db.draw=()=>{const P=db.P,ctx=P.ctx,C=CLS();P.fit();P.clear();const u=P.unit();
+  if(db.circles)db.pts.forEach((p,i)=>{if(db.core[i]){ctx.beginPath();ctx.arc(P.sx(p.x),P.sy(p.y),db.eps*u,0,7);ctx.fillStyle=C[db.lab[i]%6];ctx.globalAlpha=.07;ctx.fill();ctx.globalAlpha=1;}});
+  if(db.hover>=0){const p=db.pts[db.hover];ctx.beginPath();ctx.arc(P.sx(p.x),P.sy(p.y),db.eps*u,0,7);ctx.setLineDash([5,4]);ctx.strokeStyle=css('--ink');ctx.lineWidth=1.2;ctx.stroke();ctx.setLineDash([]);
+    db.N[db.hover].forEach(j=>{ctx.beginPath();ctx.moveTo(P.sx(p.x),P.sy(p.y));ctx.lineTo(P.sx(db.pts[j].x),P.sy(db.pts[j].y));ctx.strokeStyle=css('--muted');ctx.stroke();});}
+  const big=db.data==='course';
+  db.pts.forEach((p,i)=>{const col=db.lab[i]>=0?C[db.lab[i]%6]:css('--grey');const r=big?8:5;
+    if(db.lab[i]<0){const x=P.sx(p.x),y=P.sy(p.y);ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x-r*.7,y-r*.7);ctx.lineTo(x+r*.7,y+r*.7);ctx.moveTo(x+r*.7,y-r*.7);ctx.lineTo(x-r*.7,y+r*.7);ctx.stroke();}
+    else if(db.core[i])P.pt(p.x,p.y,r,col,css('--panel'),1);else P.pt(p.x,p.y,r-1.5,css('--panel'),col,2.5);
+    if(big){ctx.fillStyle=css('--ink');ctx.font='12px '+css('--mono');ctx.fillText(p.name,P.sx(p.x)+10,P.sy(p.y)-8);}});
+  const nc=db.core.filter(Boolean).length,nn=db.lab.filter(l=>l<0).length;
+  document.getElementById('dbN').textContent=db.nc;document.getElementById('dbCore').textContent=nc;document.getElementById('dbBorder').textContent=db.pts.length-nc-nn;document.getElementById('dbNoise').textContent=nn;
+  const h=db.hover;document.getElementById('dbHover').innerHTML=h<0?'Hover a point.':`<b>${db.pts[h].name||'Point'}</b> (${db.pts[h].x.toFixed(1)}, ${db.pts[h].y.toFixed(1)}) · ${db.N[h].length} neighbour(s) + itself = ${db.N[h].length+1} → <b>${db.core[h]?'core':db.lab[h]>=0?'border':'noise'}</b>`+(db.pts[h].name?'<br>N = {'+db.N[h].map(j=>db.pts[j].name).join(', ')+'}':'');};
+bindRange('dbEps',v=>{db.eps=v;db.run()});bindRange('dbMin',v=>{db.min=v;db.run()});
+document.getElementById('dbData').onchange=e=>{db.data=e.target.value;db.gen()};
+document.getElementById('dbCircles').onchange=e=>{db.circles=e.target.checked;db.draw()};
+db.P.canvas.addEventListener('pointermove',e=>{const p=db.P.pos(e);let b=-1,bd=.35*((db.P.dom[1]-db.P.dom[0])/10);db.pts.forEach((q,i)=>{const d=Math.hypot(q.x-p.x,q.y-p.y);if(d<bd){bd=d;b=i;}});if(b!==db.hover){db.hover=b;db.draw();}});
+db.P.canvas.addEventListener('pointerleave',()=>{db.hover=-1;db.draw()});
+db.gen();
+
+/* ================= RULES ================= */
+const PRE={basket:'Butter, Milk, Chips\nButter, Chips\nButter, Milk, Chips\nButter, Chips\nMilk, Chips\nJam',
+ han:'I1, I2, I5\nI2, I4\nI2, I3\nI1, I2, I4\nI1, I3\nI2, I3\nI1, I3\nI1, I2, I3, I5\nI1, I2, I3',
+ fp:'E, K, M, N, O, Y\nD, E, K, N, O, Y\nA, E, K, M\nC, K, M, U, Y\nC, E, I, K, O'};
+const ru={tx:document.getElementById('ruTx')};ru.tx.value=PRE.basket;
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+ru.run=()=>{const T=ru.tx.value.split('\n').map(l=>[...new Set(l.split(',').map(s=>s.trim()).filter(Boolean))]).filter(t=>t.length).map(t=>new Set(t));
+  const N=T.length;const supEl=document.getElementById('ruSup');supEl.max=Math.max(1,N);const ms=+supEl.value,mc=+document.getElementById('ruConf').value/100;
+  const cnt=s=>T.reduce((a,t)=>a+(s.every(i=>t.has(i))?1:0),0);
+  const items=[...new Set(T.flatMap(t=>[...t]))].sort();let level=items.map(i=>[i]);const freq=new Map();let rows='';let k=1;
+  while(level.length){const L=[];level.forEach(s=>{const c=cnt(s);const ok=c>=ms;rows+=`<tr class="${ok?'':'fade'}"><td>${k===1?'C1':'C'+k}</td><td>{${esc(s.join(', '))}}</td><td class="num">${c}</td><td class="num">${(c/N*100).toFixed(0)}%</td><td>${ok?'<span class="pill ok">frequent</span>':'<span class="pill no">pruned</span>'}</td></tr>`;if(ok){L.push(s);freq.set(s.join('\u0001'),c);}});
+    const next=[];for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],b=L[j];if(a.slice(0,-1).join()===b.slice(0,-1).join()){const c=[...a,b[b.length-1]].sort();const subsOk=c.every((_,x)=>freq.has(c.filter((_,y)=>y!==x).join('\u0001')));if(subsOk)next.push(c);}}
+    level=next;k++;}
+  document.getElementById('ruLevels').innerHTML=rows||'<tr><td colspan="5">No transactions.</td></tr>';
+  const rules=[];for(const [key,c] of freq){const I=key.split('\u0001');if(I.length<2)continue;const m=I.length;for(let mask=1;mask<(1<<m)-1;mask++){const A=I.filter((_,i)=>mask>>i&1),B=I.filter((_,i)=>!(mask>>i&1));const conf=c/freq.get(A.join('\u0001'));const lift=conf/(freq.get(B.join('\u0001'))/N);rules.push({A,B,c,conf,lift});}}
+  rules.sort((a,b)=>b.conf-a.conf||b.lift-a.lift);
+  document.getElementById('ruRules').innerHTML=rules.map(r=>`<tr class="${r.conf>=mc-1e-9?'':'fade'}"><td>{${esc(r.A.join(', '))}} → {${esc(r.B.join(', '))}}</td><td class="num">${r.c}/${N}</td><td class="num">${(r.conf*100).toFixed(0)}%</td><td class="num">${r.lift.toFixed(2)}</td><td>${r.conf>=mc-1e-9?'<span class="pill ok">kept</span>':'<span class="pill no">rejected</span>'}</td></tr>`).join('')||'<tr><td colspan="5">No itemset of size ≥ 2 is frequent.</td></tr>';};
+bindRange('ruSup',ru.run);bindRange('ruConf',ru.run,v=>v+'%');ru.tx.addEventListener('input',ru.run);
+document.getElementById('ruPresets').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('#ruPresets button').forEach(x=>x.classList.toggle('on',x===b));ru.tx.value=PRE[b.dataset.p];const s=b.dataset.p==='fp'?3:2;const se=document.getElementById('ruSup');se.max=9;se.value=s;document.getElementById('ruSupo').textContent=s;const ce=document.getElementById('ruConf');const cv=b.dataset.p==='basket'?75:b.dataset.p==='han'?70:80;ce.value=cv;document.getElementById('ruConfo').textContent=cv+'%';ru.run();});
+ru.run();
+
+/* ================= RECOMMENDER ================= */
+const ITEMS=['I1 Inception','I2 Interstellar','I3 Tenet','I4 Titanic','I5 Notebook'];
+const RDEF=[['Salma',[5,5,null,1,2]],['Youssef',[4,5,5,1,1]],['Imane',[1,2,1,5,5]],['Omar',[5,4,4,2,null]],['Nadia',[2,1,2,4,5]]];
+const rc={R:RDEF.map(([n,r])=>[n,[...r]]),u:0,i:2,k:2,sim:'cos'};
+const meanOf=(r,idx)=>{const v=idx.map(i=>r[i]);return v.reduce((a,b)=>a+b,0)/v.length;};
+rc.similarity=(a,b)=>{const idx=a.map((_,i)=>i).filter(i=>a[i]!=null&&b[i]!=null);if(!idx.length)return {s:0,idx};
+  let x=idx.map(i=>a[i]),y=idx.map(i=>b[i]);if(rc.sim==='mc'){const ma=meanOf(a,a.map((_,i)=>i).filter(i=>a[i]!=null)),mb=meanOf(b,b.map((_,i)=>i).filter(i=>b[i]!=null));x=x.map(v=>v-ma);y=y.map(v=>v-mb);}
+  const num=x.reduce((s,v,j)=>s+v*y[j],0),den=Math.sqrt(x.reduce((s,v)=>s+v*v,0))*Math.sqrt(y.reduce((s,v)=>s+v*v,0));return {s:den?num/den:0,idx};};
+rc.render=()=>{const C=CLS();const m=document.getElementById('recMatrix');
+  m.innerHTML='<thead><tr><th>User</th>'+ITEMS.map(t=>`<th style="text-align:center">${t}</th>`).join('')+'</tr></thead><tbody>'+rc.R.map(([n,r],ui)=>`<tr><td><b>${esc(n)}</b></td>`+r.map((v,ii)=>{const tgt=ui===rc.u&&ii===rc.i;return `<td style="text-align:center;${tgt?'background:var(--chip)':''}"><input aria-label="${esc(n)} ${ITEMS[ii]}" id="r_${ui}_${ii}" data-u="${ui}" data-i="${ii}" value="${v==null?'':v}" placeholder="?" inputmode="numeric" maxlength="1" style="width:2.4em;text-align:center;font:500 14px var(--mono);background:transparent;color:var(--ink);border:1px solid ${tgt?'var(--gold)':'var(--line)'};border-radius:4px;padding:3px"></td>`;}).join('')+'</tr>').join('')+'</tbody>';
+  const us=document.getElementById('recUser'),is=document.getElementById('recItem');us.innerHTML=rc.R.map(([n],i)=>`<option value="${i}" ${i===rc.u?'selected':''}>${esc(n)}</option>`).join('');is.innerHTML=ITEMS.map((t,i)=>`<option value="${i}" ${i===rc.i?'selected':''}>${t}</option>`).join('');
+  rc.compute();};
+rc.compute=()=>{const me=rc.R[rc.u][1];const C=CLS();
+  const cands=rc.R.map(([n,r],j)=>({n,r,j})).filter(o=>o.j!==rc.u&&o.r[rc.i]!=null).map(o=>({...o,...rc.similarity(me,o.r)})).sort((a,b)=>b.s-a.s);
+  const used=cands.slice(0,rc.k);let pred=null,txt='';
+  if(used.length){if(rc.sim==='cos'){const den=used.reduce((a,o)=>a+Math.abs(o.s),0);pred=den?used.reduce((a,o)=>a+o.s*o.r[rc.i],0)/den:null;txt='Σ sim × rating / Σ |sim|';}
+    else{const myIdx=me.map((_,i)=>i).filter(i=>me[i]!=null);const mu=myIdx.length?meanOf(me,myIdx):3;const den=used.reduce((a,o)=>a+Math.abs(o.s),0);pred=den?mu+used.reduce((a,o)=>{const oi=o.r.map((_,i)=>i).filter(i=>o.r[i]!=null);return a+o.s*(o.r[rc.i]-meanOf(o.r,oi));},0)/den:mu;txt=`mean of ${esc(rc.R[rc.u][0])} (${mu.toFixed(2)}) + Σ sim × (rating − their mean) / Σ |sim|`;}}
+  const el=document.getElementById('recPred');
+  if(me[rc.i]!=null){el.innerHTML='Already rated: '+me[rc.i];document.getElementById('recFormula').textContent='Pick an item this user has not rated (a “?” cell).';}
+  else if(pred==null){el.textContent='No neighbour rated this item';document.getElementById('recFormula').textContent='';}
+  else{const p=Math.max(1,Math.min(5,pred));el.innerHTML=`${p.toFixed(2)} <span class="pill ${p>=3.5?'ok':'no'}" style="vertical-align:middle">${p>=3.5?'recommend':'do not recommend'}</span>`;document.getElementById('recFormula').innerHTML='Predicted rating = '+txt;}
+  document.getElementById('recNb').innerHTML=cands.map((o,k)=>`<tr class="${k<rc.k?'':'fade'}"><td>${esc(o.n)}</td><td class="mono" style="font-size:12px">${o.idx.map(i=>'I'+(i+1)).join(', ')}</td><td class="num" style="color:${o.s<0?'var(--bad)':'inherit'}">${o.s.toFixed(3)}</td><td class="num">${o.r[rc.i]}</td><td>${k<rc.k?'<span class="pill ok">used</span>':''}</td></tr>`).join('')||'<tr><td colspan="5">Nobody else rated this item.</td></tr>';};
+document.getElementById('recMatrix').addEventListener('input',e=>{const t=e.target;if(!t.dataset.u)return;const v=t.value.trim();const n=+v;rc.R[+t.dataset.u][1][+t.dataset.i]=(v===''||!(n>=1&&n<=5))?null:Math.round(n);rc.compute();});
+document.getElementById('recMatrix').addEventListener('focusin',e=>{const t=e.target;if(t.dataset.u&&t.value===''){rc.u=+t.dataset.u;rc.i=+t.dataset.i;const id=t.id;rc.render();const n=document.getElementById(id);if(n)n.focus();}});
+document.getElementById('recUser').onchange=e=>{rc.u=+e.target.value;rc.render();};document.getElementById('recItem').onchange=e=>{rc.i=+e.target.value;rc.render();};
+bindRange('recK',v=>{rc.k=v;rc.compute()});seg('recSim',v=>{rc.sim=v;rc.compute()});
+document.getElementById('recReset').onclick=()=>{rc.R=RDEF.map(([n,r])=>[n,[...r]]);rc.u=0;rc.i=2;rc.render();};
+document.getElementById('recAddUser').onclick=()=>{rc.R.push(['New user '+(rc.R.length-4),[5,null,null,null,null]]);rc.u=rc.R.length-1;rc.i=1;document.getElementById('recK').max=rc.R.length-1;rc.render();};
+rc.render();
+
+/* ---------- tabs ---------- */
+const labs={knn:knn.draw,kmeans:km.draw,dbscan:db.draw,rules:()=>{},recommend:()=>{}};
+function show(t){if(!labs[t])t='rules';document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));document.querySelectorAll('section.lab').forEach(s=>s.hidden=s.id!=='lab-'+t);cur=t;requestAnimationFrame(()=>labs[t]());try{history.replaceState(null,'','#'+t)}catch(e){}}
+let cur='rules';document.querySelector('nav.tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)show(b.dataset.tab)});
+window.addEventListener('resize',()=>labs[cur]());
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>labs[cur]());
+new MutationObserver(()=>labs[cur]()).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
+show(location.hash.slice(1)||'rules');
+})();
+</script>
+
+</body>
+</html>
